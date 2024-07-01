@@ -1,0 +1,5 @@
+/ {
+	mock_sensor: mock-sensor {
+		compatible = "zephyr,mock-sensor";
+	};
+};
