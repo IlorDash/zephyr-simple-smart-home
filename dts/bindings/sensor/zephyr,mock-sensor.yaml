@@ -1,0 +1,16 @@
+# Copyright (c) 2021 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  Mock temperature sensor.
+
+  Example definition in devicetree:
+
+    mock_sensor: mock-sensor {
+      compatible = "zephyr,mock-sensor";
+      sample-period-ms = <1000>;
+    };
+
+compatible: "zephyr,mock-sensor"
+
+include: base.yaml
