@@ -1,0 +1,6 @@
+config MOCK_SENSOR
+	bool "Mock tempepature sensor"
+	default y
+	depends on DT_HAS_ZEPHYR_MOCK_SENSOR_ENABLED
+	help
+	  Enable mock temperature sensor

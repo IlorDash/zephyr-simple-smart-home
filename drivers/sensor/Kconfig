@@ -1,0 +1,3 @@
+if SENSOR
+rsource "mock_sensor/Kconfig"
+endif
