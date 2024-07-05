@@ -3,7 +3,7 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>
-
+#include <zephyr/random/random.h>
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(mock_sensor, CONFIG_SENSOR_LOG_LEVEL);
 
@@ -14,7 +14,7 @@ struct mock_sensor_data {
 static int mock_sensor_sample_fetch(const struct device *dev, enum sensor_channel chan) {
 	struct mock_sensor_data *data = dev->data;
 
-	data->val = 42;
+	data->val = sys_rand32_get() % 10 + 20;
 
 	return 0;
 }
