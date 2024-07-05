@@ -6,8 +6,7 @@
 
 LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
 
-int main(void)
-{
+int main(void) {
 	int ret;
 	const struct device *sensor;
 	struct sensor_value val;
@@ -37,10 +36,8 @@ int main(void)
 
 		printk("Get sensor val %d\n", val.val1);
 
-
 		k_sleep(K_MSEC(100));
 	}
 
 	return 0;
 }
-
