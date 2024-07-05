@@ -1,5 +1,27 @@
 / {
-	mock_sensor: mock-sensor {
-		compatible = "zephyr,mock-sensor";
+	aliases {
+  			mock0 = &mock_sensor0;
+			mock1 = &mock_sensor1;
+			mock2 = &mock_sensor2;
+  	};
+    mock_sensors {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+		mock_sensor0: mock-sensor@0 {
+			compatible = "zephyr,mock-sensor";
+			reg = <0x0>;
+			status = "okay";
+		};
+
+		mock_sensor1: mock-sensor@1 {
+			compatible = "zephyr,mock-sensor";
+			reg = <0x1>;
+		};
+
+		mock_sensor2: mock-sensor@2 {
+			compatible = "zephyr,mock-sensor";
+			reg = <0x2>;
+		};
 	};
 };

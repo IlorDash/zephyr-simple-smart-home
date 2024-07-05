@@ -6,37 +6,21 @@
 
 LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
 
-int main(void) {
-	int ret;
-	const struct device *sensor;
-	struct sensor_value val;
+#define MOCK_SENSOR_ALIAS(i) DT_ALIAS(_CONCAT(mock, i))
+#define MOCK_SENSOR_DEVICE(i, _)                                                                   \
+	IF_ENABLED(DT_NODE_EXISTS(MOCK_SENSOR_ALIAS(i)), (DEVICE_DT_GET(MOCK_SENSOR_ALIAS(i)), ))
 
+static const struct device *const sensors[] = {LISTIFY(256, MOCK_SENSOR_DEVICE, ())};
+
+int main(void) {
 	printk("Zephyr Temperature sensor Application %s\n", APP_VERSION_STRING);
 
-	sensor = DEVICE_DT_GET(DT_NODELABEL(mock_sensor));
-	if (!device_is_ready(sensor)) {
-		LOG_ERR("Temperature sensor not ready");
-		return 0;
-	}
-
-	printk("Use the sensor to change LED blinking period\n");
-
-	while (1) {
-		ret = sensor_sample_fetch(sensor);
-		if (ret < 0) {
-			LOG_ERR("Could not fetch sample (%d)", ret);
+	for (int i = 0; i < ARRAY_SIZE(sensors); i++) {
+		if (!device_is_ready(sensors[i])) {
+			LOG_ERR("Sensor %d not ready", i);
 			return 0;
 		}
-
-		ret = sensor_channel_get(sensor, SENSOR_CHAN_PROX, &val);
-		if (ret < 0) {
-			LOG_ERR("Could not get sample (%d)", ret);
-			return 0;
-		}
-
-		printk("Get sensor val %d\n", val.val1);
-
-		k_sleep(K_MSEC(100));
+		printk("Sensor %d is ready\n", i);
 	}
 
 	return 0;
