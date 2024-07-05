@@ -5,8 +5,14 @@ description: |
 
     mock_sensor: mock-sensor {
       compatible = "zephyr,mock-sensor";
+      sample-freq = <1000>;
     };
+
+include: sensor-device.yaml
 
 compatible: "zephyr,mock-sensor"
 
-include: base.yaml
+properties:
+  sample-freq:
+    type: int
+    description: Sample interval in mHz.

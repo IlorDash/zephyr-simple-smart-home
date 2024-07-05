@@ -10,17 +10,20 @@
 
 		mock_sensor0: mock-sensor@0 {
 			compatible = "zephyr,mock-sensor";
+			sample-freq = <1000>;
 			reg = <0x0>;
 			status = "okay";
 		};
 
 		mock_sensor1: mock-sensor@1 {
 			compatible = "zephyr,mock-sensor";
+			sample-freq = <5000>;
 			reg = <0x1>;
 		};
 
 		mock_sensor2: mock-sensor@2 {
 			compatible = "zephyr,mock-sensor";
+			sample-freq = <500>;
 			reg = <0x2>;
 		};
 	};

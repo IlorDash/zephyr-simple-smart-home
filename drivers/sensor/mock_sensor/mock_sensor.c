@@ -11,6 +11,10 @@ struct mock_sensor_data {
 	int val;
 };
 
+struct mock_sensor_config {
+	int sample_freq;
+};
+
 static int mock_sensor_sample_fetch(const struct device *dev, enum sensor_channel chan) {
 	struct mock_sensor_data *data = dev->data;
 
@@ -32,10 +36,27 @@ static int mock_sensor_channel_get(const struct device *dev,
 
 	return 0;
 }
+static int mock_sensor_attr_get(const struct device *dev,
+								enum sensor_channel chan,
+								enum sensor_attribute attr,
+								struct sensor_value *val) {
+	const struct mock_sensor_config *config = dev->config;
+
+	if (chan != SENSOR_CHAN_PROX) {
+		return -ENOTSUP;
+	}
+
+	if (attr != SENSOR_ATTR_SAMPLING_FREQUENCY) {
+		return -ENOTSUP;
+	}
+
+	return config->sample_freq;
+}
 
 static const struct sensor_driver_api mock_sensor_api = {
 	.sample_fetch = &mock_sensor_sample_fetch,
 	.channel_get = &mock_sensor_channel_get,
+	.attr_get = &mock_sensor_attr_get,
 };
 
 static int mock_sensor_init(const struct device *dev) {
@@ -45,11 +66,15 @@ static int mock_sensor_init(const struct device *dev) {
 #define MOCK_SENSOR_INIT(i)                                                                        \
 	static struct mock_sensor_data mock_sensor_data_##i;                                           \
                                                                                                    \
+	static const struct mock_sensor_config config_##i = {                              \
+		.sample_freq = DT_INST_PROP_OR(i, sample_freq, 0U),                                     \
+	};                                                                                             \
+                                                                                                   \
 	DEVICE_DT_INST_DEFINE(i,                                                                       \
 						  mock_sensor_init,                                                        \
 						  NULL,                                                                    \
 						  &mock_sensor_data_##i,                                                   \
-						  NULL,                                                                    \
+						  &config_##i,                                                                    \
 						  POST_KERNEL,                                                             \
 						  CONFIG_SENSOR_INIT_PRIORITY,                                             \
 						  &mock_sensor_api);
