@@ -3,6 +3,8 @@
   			mock0 = &mock_sensor0;
 			mock1 = &mock_sensor1;
 			mock2 = &mock_sensor2;
+			mock3 = &mock_sensor3;
+			mock4 = &mock_sensor4;
   	};
     mock_sensors {
         #address-cells = <1>;
@@ -25,6 +27,18 @@
 			compatible = "zephyr,mock-sensor";
 			sample-freq = <300>;
 			reg = <0x2>;
+		};
+
+		mock_sensor3: mock-sensor@3 {
+			compatible = "zephyr,mock-sensor";
+			sample-freq = <1000>;
+			reg = <0x3>;
+		};
+
+		mock_sensor4: mock-sensor@4 {
+			compatible = "zephyr,mock-sensor";
+			sample-freq = <1500>;
+			reg = <0x4>;
 		};
 	};
 };
