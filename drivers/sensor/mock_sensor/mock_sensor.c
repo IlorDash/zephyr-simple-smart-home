@@ -5,6 +5,9 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/random/random.h>
 #include <zephyr/logging/log.h>
+
+#define SENSOR_ATTR_MOCK_SAMPLE_PERIOD SENSOR_ATTR_PRIV_START
+
 LOG_MODULE_REGISTER(mock_sensor, CONFIG_SENSOR_LOG_LEVEL);
 
 struct mock_sensor_data {
@@ -12,7 +15,7 @@ struct mock_sensor_data {
 };
 
 struct mock_sensor_config {
-	int sample_freq;
+	int sample_period_ms;
 };
 
 static int mock_sensor_sample_fetch(const struct device *dev, enum sensor_channel chan) {
@@ -46,11 +49,11 @@ static int mock_sensor_attr_get(const struct device *dev,
 		return -ENOTSUP;
 	}
 
-	if (attr != SENSOR_ATTR_SAMPLING_FREQUENCY) {
+	if (attr != SENSOR_ATTR_MOCK_SAMPLE_PERIOD) {
 		return -ENOTSUP;
 	}
 
-	return config->sample_freq;
+	return config->sample_period_ms;
 }
 
 static const struct sensor_driver_api mock_sensor_api = {
@@ -67,7 +70,7 @@ static int mock_sensor_init(const struct device *dev) {
 	static struct mock_sensor_data mock_sensor_data_##i;                                           \
                                                                                                    \
 	static const struct mock_sensor_config config_##i = {                              \
-		.sample_freq = DT_INST_PROP_OR(i, sample_freq, 0U),                                     \
+		.sample_period_ms = DT_INST_PROP_OR(i, sample_period, 0U),                                     \
 	};                                                                                             \
                                                                                                    \
 	DEVICE_DT_INST_DEFINE(i,                                                                       \
