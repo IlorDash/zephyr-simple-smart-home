@@ -12,7 +12,7 @@ struct mock_sensor_data {
 };
 
 struct mock_sensor_config {
-	int sample_freq;
+	int sample_period;
 };
 
 static int mock_sensor_sample_fetch(const struct device *dev, enum sensor_channel chan) {
@@ -50,7 +50,7 @@ static int mock_sensor_attr_get(const struct device *dev,
 		return -ENOTSUP;
 	}
 
-	return config->sample_freq;
+	return config->sample_period;
 }
 
 static const struct sensor_driver_api mock_sensor_api = {
@@ -67,7 +67,7 @@ static int mock_sensor_init(const struct device *dev) {
 	static struct mock_sensor_data mock_sensor_data_##i;                                           \
                                                                                                    \
 	static const struct mock_sensor_config config_##i = {                              \
-		.sample_freq = DT_INST_PROP_OR(i, sample_freq, 0U),                                     \
+		.sample_period = DT_INST_PROP_OR(i, sample_freq, 0U),                                     \
 	};                                                                                             \
                                                                                                    \
 	DEVICE_DT_INST_DEFINE(i,                                                                       \

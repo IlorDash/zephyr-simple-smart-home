@@ -15,4 +15,4 @@ compatible: "zephyr,mock-sensor"
 properties:
   sample-freq:
     type: int
-    description: Sample interval in mHz.
+    description: Sample period in ms.
