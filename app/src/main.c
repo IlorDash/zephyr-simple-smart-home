@@ -24,9 +24,11 @@ void processing_task(void *unused1, void *unused2, void *unused3) {
 	struct sensor_data data;
 
 	while (1) {
-		if (k_msgq_get(sensQueue, &data, K_NO_WAIT) == 0) {
-			printk(
-				"[%d ms] Sensor ID: %d, Temperature: %d\n", k_uptime_get_32(), data.sens_id, data.temp);
+		if (k_msgq_get(sensQueue, &data, K_MSEC(100)) == 0) {
+			LOG_PRINTK("[%d ms] Sensor ID: %d, Temperature: %d\n",
+				   k_uptime_get_32(),
+				   data.sens_id,
+				   data.temp);
 		}
 		k_yield();
 	}
@@ -66,21 +68,19 @@ int main(void) {
 	int sample_period_ms;
 	struct sensor_value val;
 
-	printk("Zephyr Temperature sensor Application %s\n", APP_VERSION_STRING);
+	LOG_PRINTK("Zephyr Temperature sensor Application %s\n", APP_VERSION_STRING);
 
 	for (int i = 0; i < ARRAY_SIZE(sensors); i++) {
 		if (!device_is_ready(sensors[i])) {
 			LOG_ERR("Sensor %d not ready", i);
 			return 0;
 		}
-		printk("Sensor %d is ready\n", i);
-		sample_period_ms = sensor_attr_get(sensors[i],
-										  SENSOR_CHAN_PROX,
-										  (enum sensor_attribute)SENSOR_ATTR_PRIV_START,
-										  &val);
+		LOG_PRINTK("Sensor %d is ready\n", i);
+		sample_period_ms = sensor_attr_get(
+			sensors[i], SENSOR_CHAN_PROX, (enum sensor_attribute)SENSOR_ATTR_PRIV_START, &val);
 		sampling[i].sens_id = i;
 		sampling[i].period_ms = sample_period_ms;
-		printk("sample_delays_ms[%d]: %d\n", i, sampling[i].period_ms);
+		LOG_PRINTK("sample_delays_ms[%d]: %d\n", i, sampling[i].period_ms);
 	}
 
 	quick_sort_period(sampling, 0, ARRAY_SIZE(sampling) - 1);

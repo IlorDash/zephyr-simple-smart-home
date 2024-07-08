@@ -32,6 +32,7 @@ static int mock_sensor_channel_get(const struct device *dev,
 	struct mock_sensor_data *data = dev->data;
 
 	if (chan != SENSOR_CHAN_PROX) {
+		LOG_ERR("channel %d not supported", chan);
 		return -ENOTSUP;
 	}
 
@@ -46,10 +47,12 @@ static int mock_sensor_attr_get(const struct device *dev,
 	const struct mock_sensor_config *config = dev->config;
 
 	if (chan != SENSOR_CHAN_PROX) {
+		LOG_ERR("channel %d not supported", chan);
 		return -ENOTSUP;
 	}
 
 	if (attr != SENSOR_ATTR_MOCK_SAMPLE_PERIOD) {
+		LOG_ERR("attr %d not supported", attr);
 		return -ENOTSUP;
 	}
 
@@ -69,15 +72,15 @@ static int mock_sensor_init(const struct device *dev) {
 #define MOCK_SENSOR_INIT(i)                                                                        \
 	static struct mock_sensor_data mock_sensor_data_##i;                                           \
                                                                                                    \
-	static const struct mock_sensor_config config_##i = {                              \
-		.sample_period_ms = DT_INST_PROP_OR(i, sample_period, 0U),                                     \
+	static const struct mock_sensor_config config_##i = {                                          \
+		.sample_period_ms = DT_INST_PROP_OR(i, sample_period, 0U),                                 \
 	};                                                                                             \
                                                                                                    \
 	DEVICE_DT_INST_DEFINE(i,                                                                       \
 						  mock_sensor_init,                                                        \
 						  NULL,                                                                    \
 						  &mock_sensor_data_##i,                                                   \
-						  &config_##i,                                                                    \
+						  &config_##i,                                                             \
 						  POST_KERNEL,                                                             \
 						  CONFIG_SENSOR_INIT_PRIORITY,                                             \
 						  &mock_sensor_api);
