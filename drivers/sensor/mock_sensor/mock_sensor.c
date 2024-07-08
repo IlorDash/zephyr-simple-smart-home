@@ -5,6 +5,8 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/random/random.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/pm/device.h>
+#include <zephyr/pm/device_runtime.h>
 
 #define SENSOR_ATTR_MOCK_SAMPLE_PERIOD SENSOR_ATTR_PRIV_START
 
@@ -65,8 +67,38 @@ static const struct sensor_driver_api mock_sensor_api = {
 	.attr_get = &mock_sensor_attr_get,
 };
 
-static int mock_sensor_init(const struct device *dev) {
+static int mock_sensor_pm_action(const struct device *dev, enum pm_device_action action) {
+	switch (action) {
+		case PM_DEVICE_ACTION_RESUME:
+			LOG_PRINTK("%s resuming..\n", dev->name);
+			break;
+		case PM_DEVICE_ACTION_SUSPEND:
+			LOG_PRINTK("%s suspending..\n", dev->name);
+			break;
+		default: {
+			LOG_ERR("action %d not supported", action);
+			return -ENOTSUP;
+		}
+	}
+
 	return 0;
+}
+
+static int mock_sensor_init(const struct device *dev) {
+
+	int ret = 0;
+
+	LOG_ERR("DEBUG LOG\n");
+
+	pm_device_init_suspended(dev);
+
+	ret = pm_device_runtime_enable(dev);
+	if ((ret < 0) && (ret != -ENOSYS)) {
+		LOG_ERR("Failed to enable sensor %d", ret);
+		return ret;
+	}
+
+	return ret;
 }
 
 #define MOCK_SENSOR_INIT(i)                                                                        \
@@ -76,9 +108,11 @@ static int mock_sensor_init(const struct device *dev) {
 		.sample_period_ms = DT_INST_PROP_OR(i, sample_period, 0U),                                 \
 	};                                                                                             \
                                                                                                    \
+	PM_DEVICE_DT_INST_DEFINE(i, mock_sensor_pm_action);                                            \
+                                                                                                   \
 	DEVICE_DT_INST_DEFINE(i,                                                                       \
 						  mock_sensor_init,                                                        \
-						  NULL,                                                                    \
+						  PM_DEVICE_DT_INST_GET(i),                                                \
 						  &mock_sensor_data_##i,                                                   \
 						  &config_##i,                                                             \
 						  POST_KERNEL,                                                             \

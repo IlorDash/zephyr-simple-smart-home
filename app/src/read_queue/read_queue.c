@@ -1,5 +1,7 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/pm/device.h>
+#include <zephyr/pm/device_runtime.h>
 
 #include "read_queue.h"
 
@@ -82,6 +84,7 @@ int read_temp(const struct device *sensor, int id) {
 void sensor_read_task(void *p1, void *p2, void *p3) {
 	uint32_t time = 0;
 	int sens_num = (int)p1;
+	int ret;
 
 	while (1) {
 		k_sleep(K_MSEC(sampling_arr[0].time - time));
@@ -89,8 +92,20 @@ void sensor_read_task(void *p1, void *p2, void *p3) {
 
 		for (int i = 0; i < sens_num; i++) {
 			if (time >= sampling_arr[i].time) {
+
+				ret = pm_device_runtime_get(sensors_arr[sampling_arr[i].sens_id]);
+				if (ret < 0) {
+					LOG_ERR("Failed to resume sensor %d\n", sampling_arr[i].sens_id);
+				}
+
 				read_temp(sensors_arr[sampling_arr[i].sens_id], sampling_arr[i].sens_id);
 				sampling_arr[i].time = time + sampling_arr[i].period_ms;
+
+				ret = pm_device_runtime_put(sensors_arr[sampling_arr[i].sens_id]);
+				if (ret < 0) {
+					LOG_ERR("Failed to suspend sensor %d\n", sampling_arr[i].sens_id);
+				}
+
 			} else if (time < sampling_arr[i].time) {
 				break;
 			}
