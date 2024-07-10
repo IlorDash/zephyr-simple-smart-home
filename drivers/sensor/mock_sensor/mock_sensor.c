@@ -88,8 +88,6 @@ static int mock_sensor_init(const struct device *dev) {
 
 	int ret = 0;
 
-	LOG_ERR("DEBUG LOG\n");
-
 	pm_device_init_suspended(dev);
 
 	ret = pm_device_runtime_enable(dev);
