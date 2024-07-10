@@ -2,6 +2,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/pm/device_runtime.h>
+#include <string.h>
 
 #include "read_queue.h"
 
@@ -78,7 +79,30 @@ int read_temp(const struct device *sensor, int id) {
 		return ret;
 	}
 
+	LOG_DBG("[%d ms] Sensor ID: %d, Temperature: %d\n", k_uptime_get_32(), id, data.temp);
+
 	return 0;
+}
+
+void print_sampling(int num) {
+	for (int i = 0; i < num; i++) {
+		LOG_DBG("%d) ID: %d Period: %d Time: %d",
+				i,
+				sampling_arr[i].sens_id,
+				sampling_arr[i].period_ms,
+				sampling_arr[i].time);
+	}
+}
+
+void insert_sampling() {
+	int i = 1;
+	struct sensor_sampling temp_sample;
+	while (sampling_arr[0].time > sampling_arr[i].time) {
+		i++;
+	}
+	temp_sample = sampling_arr[0];
+	memmove(&sampling_arr[0], &sampling_arr[1], i - 1);
+	sampling_arr[i - 1] = temp_sample;
 }
 
 void sensor_read_task(void *p1, void *p2, void *p3) {
@@ -90,28 +114,22 @@ void sensor_read_task(void *p1, void *p2, void *p3) {
 		k_sleep(K_MSEC(sampling_arr[0].time - time));
 		time = k_uptime_get_32();
 
-		for (int i = 0; i < sens_num; i++) {
-			if (time >= sampling_arr[i].time) {
-
-				ret = pm_device_runtime_get(sensors_arr[sampling_arr[i].sens_id]);
-				if (ret < 0) {
-					LOG_ERR("Failed to resume sensor %d\n", sampling_arr[i].sens_id);
-				}
-
-				read_temp(sensors_arr[sampling_arr[i].sens_id], sampling_arr[i].sens_id);
-				sampling_arr[i].time = time + sampling_arr[i].period_ms;
-
-				ret = pm_device_runtime_put(sensors_arr[sampling_arr[i].sens_id]);
-				if (ret < 0) {
-					LOG_ERR("Failed to suspend sensor %d\n", sampling_arr[i].sens_id);
-				}
-
-			} else if (time < sampling_arr[i].time) {
-				break;
-			}
+		ret = pm_device_runtime_get(sensors_arr[sampling_arr[0].sens_id]);
+		if (ret < 0) {
+			LOG_ERR("Failed to resume sensor %d\n", sampling_arr[0].sens_id);
 		}
 
-		quick_sort_time(sampling_arr, 0, sens_num - 1);
+		read_temp(sensors_arr[sampling_arr[0].sens_id], sampling_arr[0].sens_id);
+		sampling_arr[0].time = time + sampling_arr[0].period_ms;
+
+		ret = pm_device_runtime_put(sensors_arr[sampling_arr[0].sens_id]);
+		if (ret < 0) {
+			LOG_ERR("Failed to suspend sensor %d\n", sampling_arr[0].sens_id);
+		}
+
+		insert_sampling();
+
+		print_sampling(sens_num);
 	}
 }
 
@@ -124,6 +142,8 @@ read_queue_init(struct device **_sensor, struct sensor_sampling *_sampling_arr, 
 	sampling_arr = _sampling_arr;
 
 	time = k_uptime_get();
+
+	LOG_DBG("DEBUG LOG\n");
 
 	for (int i = 0; i < sens_num; i++) {
 		sampling_arr[i].time = time + sampling_arr[i].period_ms;
