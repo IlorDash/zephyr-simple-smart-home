@@ -10,7 +10,7 @@
 #define STACKSIZE 1024
 #define PRIORITY 7
 
-LOG_MODULE_REGISTER(read_queue, CONFIG_SENSOR_LOG_LEVEL);
+LOG_MODULE_REGISTER(read_queue, CONFIG_APP_LOG_LEVEL);
 K_MSGQ_DEFINE(sensor_queue, sizeof(struct sensor_data), QUEUE_SIZE, 1);
 K_THREAD_STACK_DEFINE(sens_stack, STACKSIZE);
 
@@ -77,6 +77,8 @@ int read_temp(const struct device *sensor, int id) {
 		LOG_ERR("Failed to send data to queue.\n");
 		return ret;
 	}
+
+	LOG_DBG("[%d ms] Sensor ID: %d, Temperature: %d\n", k_uptime_get_32(), id, data.temp);
 
 	return 0;
 }
