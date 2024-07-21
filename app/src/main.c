@@ -34,6 +34,12 @@ void processing_task(void *unused1, void *unused2, void *unused3) {
 	}
 }
 
+void swap(struct sensor_sampling *a, struct sensor_sampling *b) {
+	struct sensor_sampling temp = *a;
+	*a = *b;
+	*b = temp;
+}
+
 int partition_period(struct sensor_sampling arr[], int low, int high) {
 	uint16_t pivot = arr[low].period_ms;
 	int i = low;

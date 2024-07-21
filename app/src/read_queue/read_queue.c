@@ -2,6 +2,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/pm/device_runtime.h>
+#include <string.h>
 
 #include "read_queue.h"
 
@@ -17,40 +18,6 @@ K_THREAD_STACK_DEFINE(sens_stack, STACKSIZE);
 struct k_thread sens_read_thread;
 static struct device **sensors_arr;
 static struct sensor_sampling *sampling_arr;
-
-void swap(struct sensor_sampling *a, struct sensor_sampling *b) {
-	struct sensor_sampling temp = *a;
-	*a = *b;
-	*b = temp;
-}
-
-int partition_time(struct sensor_sampling arr[], int low, int high) {
-	int64_t pivot = arr[low].time;
-	int i = low;
-	int j = high;
-
-	while (i < j) {
-		while (arr[i].time <= pivot && i <= high - 1) {
-			i++;
-		}
-		while (arr[j].time > pivot && j >= low + 1) {
-			j--;
-		}
-		if (i < j) {
-			swap(&arr[i], &arr[j]);
-		}
-	}
-	swap(&arr[low], &arr[j]);
-	return j;
-}
-
-void quick_sort_time(struct sensor_sampling arr[], int low, int high) {
-	if (low < high) {
-		int partitionIndex = partition_time(arr, low, high);
-		quick_sort_time(arr, low, partitionIndex - 1);
-		quick_sort_time(arr, partitionIndex + 1, high);
-	}
-}
 
 int read_temp(const struct device *sensor, int id) {
 	int ret;
@@ -83,42 +50,53 @@ int read_temp(const struct device *sensor, int id) {
 	return 0;
 }
 
-void sensor_read_task(void *p1, void *p2, void *p3) {
-	uint32_t time = 0;
-	int sens_num = (int)p1;
-	int ret;
+void insert_sampling(int sens_num) {
+	int i = 1;
+	struct sensor_sampling temp_sample;
+	while ((sampling_arr[0].time > sampling_arr[i].time) && (i < sens_num)) {
+		i++;
+	}
+	temp_sample = sampling_arr[0];
+	memmove(&sampling_arr[0], &sampling_arr[1], sizeof(struct sensor_sampling) * (i - 1));
+	sampling_arr[i - 1] = temp_sample;
+}
 
-	while (1) {
-		k_sleep(K_MSEC(sampling_arr[0].time - time));
-		time = k_uptime_get_32();
-
-		for (int i = 0; i < sens_num; i++) {
-			if (time >= sampling_arr[i].time) {
-
-				ret = pm_device_runtime_get(sensors_arr[sampling_arr[i].sens_id]);
-				if (ret < 0) {
-					LOG_ERR("Failed to resume sensor %d\n", sampling_arr[i].sens_id);
-				}
-
-				read_temp(sensors_arr[sampling_arr[i].sens_id], sampling_arr[i].sens_id);
-				sampling_arr[i].time = time + sampling_arr[i].period_ms;
-
-				ret = pm_device_runtime_put(sensors_arr[sampling_arr[i].sens_id]);
-				if (ret < 0) {
-					LOG_ERR("Failed to suspend sensor %d\n", sampling_arr[i].sens_id);
-				}
-
-			} else if (time < sampling_arr[i].time) {
-				break;
-			}
-		}
-
-		quick_sort_time(sampling_arr, 0, sens_num - 1);
+void print_sampling(int sens_num) {
+	for (int i = 0; i < sens_num; i++) {
+		LOG_DBG("%d) Period: %d Time: %d", sampling_arr[i].sens_id, sampling_arr[i].period_ms, sampling_arr[i].time);
 	}
 }
 
-struct k_msgq *
-read_queue_init(struct device **_sensor, struct sensor_sampling *_sampling_arr, int sens_num) {
+void sensor_read_task(void *p1, void *p2, void *p3) {
+	uint32_t time = 0;
+	int sens_num = (int)p1;
+	int sleep_time, ret;
+
+	while (1) {
+		sleep_time = sampling_arr[0].time - time;
+		sleep_time = (sleep_time < 0) ? 0 : sleep_time;
+		k_sleep(K_MSEC(sleep_time));
+		time = k_uptime_get_32();
+
+		ret = pm_device_runtime_get(sensors_arr[sampling_arr[0].sens_id]);
+		if (ret < 0) {
+			LOG_ERR("Failed to resume sensor %d\n", sampling_arr[0].sens_id);
+		}
+
+		read_temp(sensors_arr[sampling_arr[0].sens_id], sampling_arr[0].sens_id);
+		sampling_arr[0].time = time + sampling_arr[0].period_ms;
+
+		ret = pm_device_runtime_put(sensors_arr[sampling_arr[0].sens_id]);
+		if (ret < 0) {
+			LOG_ERR("Failed to suspend sensor %d\n", sampling_arr[0].sens_id);
+		}
+
+		insert_sampling(sens_num);
+		print_sampling(sens_num);
+	}
+}
+
+struct k_msgq *read_queue_init(struct device **_sensor, struct sensor_sampling *_sampling_arr, int sens_num) {
 
 	int64_t time;
 
@@ -131,16 +109,7 @@ read_queue_init(struct device **_sensor, struct sensor_sampling *_sampling_arr, 
 		sampling_arr[i].time = time + sampling_arr[i].period_ms;
 	}
 
-	k_thread_create(&sens_read_thread,
-					sens_stack,
-					STACKSIZE,
-					sensor_read_task,
-					INT_TO_POINTER(sens_num),
-					NULL,
-					NULL,
-					PRIORITY,
-					0,
-					K_NO_WAIT);
+	k_thread_create(&sens_read_thread, sens_stack, STACKSIZE, sensor_read_task, INT_TO_POINTER(sens_num), NULL, NULL, PRIORITY, 0, K_NO_WAIT);
 
 	return &sensor_queue;
 }
